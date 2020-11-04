@@ -1,0 +1,171 @@
+---
+title: "Varihedsanalyse_mini1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Data 
+```{r}
+library(survival)# the package for durvival functions.
+library(ggfortify) # Usefull for intepreting Survival functions plots.
+library(KMsurv)
+Cdata<-read.table("C_data.txt",header = FALSE)
+head(Cdata)
+colnames(Cdata) <-c("Patient_number", "Death_Censoring", "Time", "Treatment", "Sex", "Ascites", "Age", "Prothrombin")
+head(Cdata)
+```
+Opgave 1
+```{r}
+
+Surv(Cdata$Time, Cdata$Death_Censoring)[1:10]
+sur.fit1 <- survfit(Surv(Time, Death_Censoring) ~ Treatment, data=Cdata)
+names(sur.fit1)
+plot(sur.fit1,xlab="Days",ylab="Overall survival probability")
+
+autoplot(sur.fit1,xlab="Days",ylab="Overall survival probability")
+
+# Log-rank test
+Log_rank_test<-survdiff(Surv(Time, Death_Censoring) ~Treatment , data = Cdata)
+Log_rank_test # results
+1 - pchisq(Log_rank_test$chisq, length(Log_rank_test$n) - 1)#p-value
+```
+Opgave 2
+```{r}
+Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring)
+#Looking at Treatment
+Cox.fit1 <- coxph(Sur1~ strata(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
+summary(Cox.fit1)
+source("andersen.R")
+test1<-survfit(Cox.fit1)
+test1
+andersen.plot(test1) # must have strata, plots the cumilated hazard function for the levels of the strata variable
+res1<-residuals(Cox.fit1,type="deviance")
+hist(res1)
+boxplot(res1~Cdata$Death_Censoring)
+#Looking at sex
+Cox.fit2 <- coxph(Sur1~ factor(Treatment)+ strata(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
+summary(Cox.fit2)
+source("andersen.R")
+test2<-survfit(Cox.fit2)
+test2
+andersen.plot(test2) # must have strata, plots the cumilated hazard function for the levels of the strata variable
+res2<-residuals(Cox.fit2,type="deviance")
+hist(res2)
+boxplot(res2~Cdata$Death_Censoring)
+# Looking at Ascites
+Cox.fit3 <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ strata(Ascites)+ Age+ Prothrombin, data = Cdata)
+summary(Cox.fit3)
+source("andersen.R")
+test3<-survfit(Cox.fit3)
+test3
+andersen.plot(test3) # must have strata, plots the cumilated hazard function for the levels of the strata variable
+res3<-residuals(Cox.fit3,type="deviance")
+hist(res3)
+boxplot(res3~Cdata$Death_Censoring)
+# Looking at Age
+min(Cdata[,7])# youngest person is 17
+max(Cdata[,7])# oldest person is 80
+Age.groups=cut(Cdata$Age,breaks=c(-Inf,quantile(Cdata$Age ,prob=c(0.33,0.66)),Inf)) #devides the Age into groups
+Cox.fit4 <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ strata(Age.groups)+ Prothrombin, data = Cdata)
+summary(Cox.fit4)
+source("andersen.R")
+test4<-survfit(Cox.fit4)
+test4
+andersen.plot(test4) # must have strata, plots the cumilated hazard function for the levels of the strata variable
+res4<-residuals(Cox.fit4,type="deviance")
+hist(res4)
+boxplot(res4~Cdata$Death_Censoring)
+# Looking at Protrombin
+min(Cdata[,8])# Lowest 12
+max(Cdata[,8])# Highest 135
+Prothrombin.groups=cut(Cdata$Prothrombin,breaks=c(-Inf,quantile(Cdata$Prothrombin ,prob=c(0.33,0.66)),Inf)) #devides the Age into groups
+Cox.fit5 <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ strata(Prothrombin.groups), data = Cdata)
+summary(Cox.fit5)
+source("andersen.R")
+test5<-survfit(Cox.fit5)
+test5
+andersen.plot(test5) # must have strata, plots the cumilated hazard function for the levels of the strata variable
+res5<-residuals(Cox.fit5,type="deviance")
+hist(res5)
+boxplot(res5~Cdata$Death_Censoring)
+
+```
+Opgave 3
+```{r}
+Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring)
+Cox.fit <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
+Cox.fit
+summary(Cox.fit)
+
+
+
+
+
+temp=cox.zph(Cox.fit)
+par(mfrow=c(1,2))
+plot(temp)
+```
+Opgave 4
+```{r}
+# pull out different variables to see the effect, leveled varables are not of intresed since all information have be extracted?
+# Looking at the model without Age
+Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring)
+Cox.fit._age <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Prothrombin, data = Cdata)
+res_age=residuals(Cox.fit._age)
+scatter.smooth(Cdata$Age, res_age)
+
+#Looking at the model without Prothrombin
+Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring)
+Cox.fit._Prothrombin <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age, data = Cdata)
+res_Prothrombin=residuals(Cox.fit._Prothrombin)
+scatter.smooth(Cdata$Prothrombin, res_Prothrombin)
+
+```
+Opgave 5
+```{r}
+Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring)
+#Interaction Treatment and Sex
+Cox.fit_TS <- coxph(Sur1~ factor(Treatment)*factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
+Cox.fit_TS
+summary(Cox.fit_TS)
+#Interaction Treatment and Ascites
+Cox.fit_TA <- coxph(Sur1~ factor(Sex)+factor(Treatment)*factor(Ascites)+ Age+ Prothrombin, data = Cdata)
+Cox.fit_TA
+summary(Cox.fit_TA)
+#standard model
+Cox.fit <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
+Cox.fit
+summary(Cox.fit)
+# note here that Ascites contains 3 variables, so the p-values can't be interpreted directly so we compair Likelihood ratio tests against the standard model
+#we use a anova co get the chi squared value for the 2 models, the difference in likelihood ratio test is 139.1-129.5=9.4 and the DF is 8-6=2
+anova(Cox.fit_TA,Cox.fit) # we get at p-value of 0.008 so it is significant.
+#Interaction Treatment and Age
+Cox.fit_TAA <- coxph(Sur1~ factor(Sex)+factor(Ascites)+ factor(Treatment)*Age+ Prothrombin, data = Cdata)
+Cox.fit_TAA
+summary(Cox.fit_TAA)
+#Interaction Treatment and Prothrombin
+Cox.fit_TP <- coxph(Sur1~ factor(Sex)+factor(Ascites)+ Age+factor(Treatment)*Prothrombin, data = Cdata)
+Cox.fit_TP
+summary(Cox.fit_TP)
+
+
+
+```
+Opgave 6
+```{r}
+Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring)
+Cox.fit <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
+Cox.fit
+summary(Cox.fit)
+
+new.age=(65-57)*365
+
+new.surf<-survfit(Cox.fit,newdata = data.frame(Treatment=0,Sex=1,Age=57,Ascites=1,Prothrombin=85))
+autoplot(new.surf,xlab="Days",ylab="Overall survival probability")+
+  geom_vline(xintercept = new.age)
+```
+
+
