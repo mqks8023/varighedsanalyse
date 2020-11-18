@@ -29,7 +29,7 @@ andersen.plot=function(surv){
         #print(ntimes)
         #print(summary(curves))
         #print(curves$time)
-        print(curves$cumhaz)
+      #  print(curves$cumhaz)
         #print(temp1)
         #print(temp2)
         #include=temp1 > 0 & temp2 >0

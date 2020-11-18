@@ -1,5 +1,6 @@
 ---
 title: "Varihedsanalyse_mini1"
+author: Gruppe 1.211
 output: html_document
 ---
 
@@ -19,97 +20,138 @@ head(Cdata)
 # Opgave 1
 ```{r}
 sur.fit1 <- survfit(Surv(Time, Death_Censoring) ~ Treatment, data=Cdata)# constructing Survival function
-names(sur.fit1)
-#plot(sur.fit1,xlab="Days",ylab="Overall survival probability") #a normal plot
+names(sur.fit1) # checking survival function names
 autoplot(sur.fit1,xlab="Days",ylab="Overall survival probability") # a clear plot
+```
 
-# Log-rank test
+Here the red line is prednison treatment and the blue is placebo treatment.
+
+Log-rank test
+```{r}
 Log_rank_test<-survdiff(Surv(Time, Death_Censoring) ~Treatment , data = Cdata)
 Log_rank_test # results
 1 - pchisq(Log_rank_test$chisq, length(Log_rank_test$n) - 1)#True p-value
 ```
+
 The log-rank test show no significans in Treatment method.
 
 # Opgave 2
 ```{r}
 Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring) #defining our survival function
-#Looking at Treatment
-Cox.fit1 <- coxph(Sur1~ strata(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
-# Fitting a Cox model
+```
+
+Looking at Treatment
+```{r}
+Cox.fit1 <- coxph(Sur1~ strata(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata) # Fitting a Cox model
 summary(Cox.fit1)
 source("andersen.R")
 test1<-survfit(Cox.fit1)
 test1
-andersen.plot(test1) # must have strata, plots the cumulative hazard function for the levels of the strata variable
-# The cumulative hazard looks good.
+andersen.plot(test1)
+```
+
+Andersen plots must have strata, plots the cumulative hazard function for the levels of the strata variable
+The cumulative hazard looks good.
+```{r}
 res1<-residuals(Cox.fit1,type="deviance") #finding the residual
 hist(res1)
-# not great but looks good
-boxplot(res1~Cdata$Death_Censoring)
-# one outlier with each, but otherwise good
+```
 
-#Looking at sex
-Cox.fit2 <- coxph(Sur1~ factor(Treatment)+ strata(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
-# Fitting a Cox model
+not great but looks good
+```{r}
+boxplot(res1~Cdata$Treatment)
+```
+
+no Outliers
+
+Looking at sex
+```{r}
+Cox.fit2 <- coxph(Sur1~ factor(Treatment)+ strata(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata) # Fitting a Cox model
 summary(Cox.fit2)
 source("andersen.R")
 test2<-survfit(Cox.fit2)
 test2
-andersen.plot(test2) # must have strata, plots the cumilated hazard function for the levels of the strata variable
-#Looks good
+andersen.plot(test2)
+```
+
+Looks good
+```{r}
 res2<-residuals(Cox.fit2,type="deviance")
 hist(res2)
-# next to no difference
-boxplot(res2~Cdata$Death_Censoring)
-# now we have 2 outliers with death.
+```
 
-# Looking at Ascites
-Cox.fit3 <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ strata(Ascites)+ Age+ Prothrombin, data = Cdata)
-# Fitting a Cox model
+next to no difference
+```{r}
+boxplot(res2~Cdata$Sex)
+```
+
+Looks good
+
+Looking at Ascites
+```{r}
+Cox.fit3 <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ strata(Ascites)+ Age+ Prothrombin, data = Cdata) # Fitting a Cox model
 summary(Cox.fit3)
 source("andersen.R")
 test3<-survfit(Cox.fit3)
 test3 #note we now have 3 variables for hazard function
-andersen.plot(test3) # must have strata, plots the cumilated hazard function for the levels of the strata variable
-# Looks good for all 3
+andersen.plot(test3)
+```
+
+Looks good for all 3
+```{r}
 res3<-residuals(Cox.fit3,type="deviance")
 hist(res3)
-# We have one noticable high residual variable.
-boxplot(res3~Cdata$Death_Censoring)
-# now we have no outliers with death.
+```
 
-# Looking at Age
+We have one noticable high residual variable.
+```{r}
+boxplot(res3~Cdata$Ascites)
+```
+
+no outliers
+
+Looking at Age
+```{r}
 min(Cdata[,7])# youngest person is 17
 max(Cdata[,7])# oldest person is 80
 Age.groups=cut(Cdata$Age,breaks=c(-Inf,quantile(Cdata$Age ,prob=c(0.33,0.66)),Inf)) #devides the Age into 3 groups
-Cox.fit4 <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ strata(Age.groups)+ Prothrombin, data = Cdata)
-# Fitting a Cox model
+Cox.fit4 <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ strata(Age.groups)+ Prothrombin, data = Cdata) # Fitting a Cox model
 summary(Cox.fit4)
 source("andersen.R")
 test4<-survfit(Cox.fit4)
 test4 # we see our group boundries
-andersen.plot(test4) # must have strata, plots the cumilated hazard function for the levels of the strata variable
+andersen.plot(test4)
+```
+
+Looks good
+```{r}
 res4<-residuals(Cox.fit4,type="deviance")
 hist(res4)
-boxplot(res4~Cdata$Death_Censoring)
-# no outliers with censoring but 2 outliers with death
+boxplot(res4~Age.groups)
+```
+no outliers
 
-# Looking at Protrombin
+Looking at Protrombin
+```{r}
 min(Cdata[,8])# Lowest 12
 max(Cdata[,8])# Highest 135
 Prothrombin.groups=cut(Cdata$Prothrombin,breaks=c(-Inf,quantile(Cdata$Prothrombin ,prob=c(0.33,0.66)),Inf)) #devides the Age into 3 groups
-Cox.fit5 <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ strata(Prothrombin.groups), data = Cdata)
-# Fitting a Cox model
+Cox.fit5 <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ strata(Prothrombin.groups), data = Cdata) # Fitting a Cox model
 summary(Cox.fit5)
 source("andersen.R")
 test5<-survfit(Cox.fit5)
 test5 # note our group boundries
-andersen.plot(test5) # must have strata, plots the cumilated hazard function for the levels of the strata variable
+andersen.plot(test5)
+```
+
+Looks good
+```{r}
 res5<-residuals(Cox.fit5,type="deviance")
 hist(res5)
-boxplot(res5~Cdata$Death_Censoring)
-# note 1 outlier for each
+boxplot(res5~Prothrombin.groups)
 ```
+
+no outliers
 
 # Opgave 3
 ```{r}
@@ -117,64 +159,88 @@ Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring) # our survival
 Cox.fit <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
 Cox.fit
 summary(Cox.fit)
-# we look at the p-value of treatment and see that it is not significant, resulting in Treatment not affecting the result.
 ```
+we look at the p-value of treatment and see that it is not significant, resulting in Treatment not affecting the result.
 
 # Opgave 4
+We pull out different variables to see the effect, leveled varables are not of intresed since all information have be extracted.
+
+Looking at the model without Age
 ```{r}
-# pull out different variables to see the effect, leveled varables are not of intresed since all information have be extracted.
-# Looking at the model without Age
 Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring)
 Cox.fit._age <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Prothrombin, data = Cdata) # Fitting Cox model
 res_age=residuals(Cox.fit._age) #residuals
 scatter.smooth(Cdata$Age, res_age)
-#Using martingales residuals we see a linear behaviour for Age, indicating that using Age as a linear term is correct.
+```
 
-#Looking at the model without Prothrombin
+Using martingales residuals we see a linear behaviour for Age, indicating that using Age as a linear term is correct.
+
+Looking at the model without Prothrombin
+```{r}
 Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring)
 Cox.fit._Prothrombin <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age, data = Cdata) # Fitting Cox model
 res_Prothrombin=residuals(Cox.fit._Prothrombin) #residuals
 scatter.smooth(Cdata$Prothrombin, res_Prothrombin)
-# Using martingale residuals we see a decreasing linear behavoiur with a small curv in the middel, showing that using Prothrombin as a linear term is correct.
-
 ```
+
+Using martingale residuals we see a decreasing linear behavoiur with a small curv in the middel, showing that using Prothrombin as a linear term is correct.
 
 # Opgave 5
 ```{r}
 Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring) #our survival function
+```
 
-#Interaction Treatment and Sex
+Interaction Treatment and Sex
+```{r}
 Cox.fit_TS <- coxph(Sur1~ factor(Treatment)*factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
 Cox.fit_TS
 summary(Cox.fit_TS)
-# We see a p-value of 0.311 for Treamtent and Sex menaning no significant interaction is present. 
+```
 
-#Interaction Treatment and Ascites
+We see a p-value of 0.311 for Treamtent and Sex menaning no significant interaction is present. 
+
+Interaction Treatment and Ascites
+```{r}
 Cox.fit_TA <- coxph(Sur1~ factor(Sex)+factor(Treatment)*factor(Ascites)+ Age+ Prothrombin, data = Cdata)
 Cox.fit_TA
 summary(Cox.fit_TA)
-# Because we have 3 levels in Ascites we get 2 varaibles in our model, each has a significans accounting to the p-value, however it is adviced to look at the model as a whole and compaire it to the orginal model.
-#standard model
+```
+
+Because we have 3 levels in Ascites we get 2 varaibles in our model, each has a significans accounting to the p-value, however it is adviced to look at the model as a whole and compaire it to the orginal model.
+
+Standard model
+```{r}
 Cox.fit <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata)
 Cox.fit
 summary(Cox.fit)
-# note here that Ascites contains 3 levels, so we compaire Likelihood ratio tests against the standard model
-#we use a anova to get the chi squared value for the 2 models, the difference in likelihood ratio test is 139.1-129.5=9.4 and the DF is 8-6=2
-anova(Cox.fit_TA,Cox.fit) # we get at p-value of 0.008 so the interaction between Treatment and Ascites is significant.
+```
 
-#Interaction Treatment and Age
+note here that Ascites contains 3 levels, so we compaire Likelihood ratio tests against the standard model
+
+we use a anova to get the chi squared value for the 2 models, the difference in likelihood ratio test is 139.1-129.5=9.4 and the DF is 8-6=2
+```{r}
+anova(Cox.fit_TA,Cox.fit)
+```
+
+we get at p-value of 0.008 so the interaction between Treatment and Ascites is significant.
+
+Interaction Treatment and Age
+```{r}
 Cox.fit_TAA <- coxph(Sur1~ factor(Sex)+factor(Ascites)+ factor(Treatment)*Age+ Prothrombin, data = Cdata)
 Cox.fit_TAA
 summary(Cox.fit_TAA)
-# We see a p-value of 0.19 for the interaction between Treatment and Age, meaning it is not significant.
+```
 
-#Interaction Treatment and Prothrombin
+We see a p-value of 0.19 for the interaction between Treatment and Age, meaning it is not significant.
+
+Interaction Treatment and Prothrombin
+```{r}
 Cox.fit_TP <- coxph(Sur1~ factor(Sex)+factor(Ascites)+ Age+factor(Treatment)*Prothrombin, data = Cdata)
 Cox.fit_TP
 summary(Cox.fit_TP)
-# A p-value of 0.532 results in a no significants between Treatment and Prothrombin.
-
 ```
+
+A p-value of 0.532 results in a no significants between Treatment and Prothrombin.
 
 # Opgave 6
 ```{r}
@@ -182,15 +248,20 @@ Sur1 <- Surv(Cdata$Time, Cdata$Death_Censoring) # our survival function
 Cox.fit <- coxph(Sur1~ factor(Treatment)+ factor(Sex)+ factor(Ascites)+ Age+ Prothrombin, data = Cdata) #Cox model
 Cox.fit
 summary(Cox.fit)
-
-new.surf<-survfit(Cox.fit,newdata = data.frame(Treatment=0,Sex=1,Age=57,Ascites=1,Prothrombin=85)) #our survival function for the specified person
-
-new.age=(65-57)*365
-# number of days untill the person id 65 years old
-
-autoplot(new.surf,xlab="Days",ylab="Overall survival probability")+
-  geom_vline(xintercept = new.age)
-# Using the plot we see that the probability of survival after 2920 days, at 65 years old, is approximately 25%.
+new.surf<-survfit(Cox.fit,newdata = data.frame(Treatment=0,Sex=1,Age=57,Ascites=1,Prothrombin=85))
 ```
 
+our survival function for the specified person
 
+```{r}
+new.age=(65-57)*365
+```
+
+number of days untill the person id 65 years old
+
+```{r}
+autoplot(new.surf,xlab="Days",ylab="Overall survival probability")+
+  geom_vline(xintercept = new.age)
+```
+
+Using the plot we see that the probability of survival after 2920 days, at 65 years old, is approximately 25%.
